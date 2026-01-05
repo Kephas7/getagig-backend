@@ -16,7 +16,7 @@ export class AuthController {
       const userData: RegisterUserDTO = pasredData.data;
       const newUser = await userService.registerUser(userData);
       return res.status(201).json({
-        success: false,
+        success: true,
         message: "User registered successfully.",
         data: newUser,
       });
