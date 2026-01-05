@@ -37,14 +37,12 @@ export class AuthController {
       }
       const loginData: LoginUserDTO = pasredData.data;
       const { token, user } = await userService.LoginUser(loginData);
-      return res
-        .status(201)
-        .json({
-          success: true,
-          message: "Login Successful.",
-          data: user,
-          token,
-        });
+      return res.status(201).json({
+        success: true,
+        message: "Login Successful.",
+        data: user,
+        token,
+      });
     } catch (error: Error | any) {
       return res.status(error.statusCode ?? 500).json({
         success: false,
