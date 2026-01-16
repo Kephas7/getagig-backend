@@ -50,4 +50,32 @@ export class AuthController {
       });
     }
   }
+
+  async getCurrentUser(req: Request, res: Response) {
+    try {
+      const user = req.user as any;
+
+      if (!user || !user._id) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error: Error | any) {
+      return res.status(error.statusCode ?? 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
 }
