@@ -12,28 +12,26 @@ declare global {
       user?: Record<string, any> | IUser;
     }
   }
-} // creating a tag for user
-// can use req.user after this
+}
 
 export async function authorizedMiddleWare(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
-  // express function can have next function to go to next
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer "))
       throw new HttpError(401, "Unauthorized, No Bearer Token");
 
-    const token = authHeader.split(" ")[1]; // "Bearer <token" 0 -> Bearer , 1 -> token
+    const token = authHeader.split(" ")[1];
     if (!token) throw new HttpError(401, "Unauthorized, Missing Token");
 
-    const decoded = jwt.verify(token, JWT_SECRET) as Record<string, any>; // decoded -> payload
+    const decoded = jwt.verify(token, JWT_SECRET) as Record<string, any>;
     if (!decoded || !decoded.id)
       throw new HttpError(401, "Unauthorized, Invalid Token");
 
-    const user = await userRepository.getUserById(decoded.id); // make function async
+    const user = await userRepository.getUserById(decoded.id);
     if (!user) throw new HttpError(401, "Unauthorized, User Not Found");
 
     req.user = user;
@@ -43,18 +41,12 @@ export async function authorizedMiddleWare(
       .status(err.statusCode || 500)
       .json({ success: false, message: err.message || "Unauthorized" });
   }
-  // if(req.headers && req.headers.authorization){
-  //     return next();
-  // }
-  // return res.status(401).json(
-  //     { success: false, message: "Unauthorized" }
-  // )
 }
 
 export async function adminMiddleWare(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized, User not found");
