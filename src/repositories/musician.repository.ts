@@ -1,5 +1,5 @@
-import { MusicianModel, IMusician } from "../models/musicain.model";
-import { CreateMusicianDto, UpdateMusicianDto } from "../dtos/musicain.dto";
+import { MusicianModel, IMusician } from "../models/musician.model";
+import { CreateMusicianDto, UpdateMusicianDto } from "../dtos/musician.dto";
 
 export class MusicianRepository {
   async create(userId: string, data: CreateMusicianDto): Promise<IMusician> {
