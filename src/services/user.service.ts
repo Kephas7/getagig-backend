@@ -15,7 +15,7 @@ export class UserService {
       throw new HttpError(403, "Email already registered.");
     }
     const existingUsername = await userRepository.getUserByUsername(
-      data.username
+      data.username,
     );
     if (existingUsername) {
       throw new HttpError(403, "Username already registered.");
