@@ -26,7 +26,7 @@ export interface OrganizerResponseDto {
   videos: string[];
   organizationType: string;
   eventTypes: string[];
-  verificationDocuments?: string[];
+  verificationDocuments: string[];
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
