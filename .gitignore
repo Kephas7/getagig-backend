@@ -81,3 +81,18 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+## File Upload Flow:
+
+1. **Profile Picture**: Single file upload
+2. **Photos**: Multiple files (max 10)
+3. **Videos**: Multiple files (max 5)
+4. **Audio**: Multiple files (max 10)
+
+Files will be stored in:
+```
+uploads/
+  └── musicians/
+      ├── profile/
+      ├── photos/
+      ├── videos/
+      └── audio/

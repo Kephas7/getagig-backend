@@ -1,9 +1,11 @@
 import z from "zod";
-import { createMusicianSchema, updateMusicianSchema } from "../types/musicain.type";
+import {
+  createMusicianSchema,
+  updateMusicianSchema,
+} from "../types/musicain.type";
 
 export type CreateMusicianDto = z.infer<typeof createMusicianSchema>;
 export type UpdateMusicianDto = z.infer<typeof updateMusicianSchema>;
-
 
 export interface MusicianResponseDto {
   id: string;
