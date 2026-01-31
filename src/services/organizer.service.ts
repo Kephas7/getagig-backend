@@ -201,15 +201,23 @@ export class OrganizerService {
       throw new HttpError(404, "Organizer profile not found");
     }
 
-    if (!organizer.photos.includes(photoUrl)) {
+    // Handle both full paths and relative paths
+    const photoToRemove = organizer.photos.find(
+      (photo) =>
+        photo === photoUrl ||
+        photo.endsWith(photoUrl) ||
+        photoUrl.includes(photo),
+    );
+
+    if (!photoToRemove) {
       throw new HttpError(400, "Photo not found in profile");
     }
 
-    deleteFile(photoUrl);
+    deleteFile(photoToRemove);
     const updated = await this.organizerRepository.removeMedia(
       userId,
       "photos",
-      photoUrl,
+      photoToRemove,
     );
 
     return this.toResponseDto(updated!);
@@ -249,15 +257,23 @@ export class OrganizerService {
       throw new HttpError(404, "Organizer profile not found");
     }
 
-    if (!organizer.videos.includes(videoUrl)) {
+    // Handle both full paths and relative paths
+    const videoToRemove = organizer.videos.find(
+      (video) =>
+        video === videoUrl ||
+        video.endsWith(videoUrl) ||
+        videoUrl.includes(video),
+    );
+
+    if (!videoToRemove) {
       throw new HttpError(400, "Video not found in profile");
     }
 
-    deleteFile(videoUrl);
+    deleteFile(videoToRemove);
     const updated = await this.organizerRepository.removeMedia(
       userId,
       "videos",
-      videoUrl,
+      videoToRemove,
     );
 
     return this.toResponseDto(updated!);
@@ -316,22 +332,44 @@ export class OrganizerService {
   }
 
   private toResponseDto(organizer: IOrganizer): OrganizerResponseDto {
+    const getMediaUrl = (
+      filename: string | undefined,
+      type: string,
+    ): string => {
+      if (!filename) return "";
+
+      // If it's already a URL (absolute path), return as is
+      if (filename.startsWith("http://") || filename.startsWith("https://")) {
+        return filename;
+      }
+
+      // If it's already a relative path, return as is
+      if (filename.startsWith("/uploads/")) {
+        return filename;
+      }
+
+      // Otherwise construct the relative URL
+      return `/uploads/organizers/${type}/${filename}`;
+    };
+
     return {
       id: organizer._id.toString(),
       userId: organizer.userId.toString(),
       organizationName: organizer.organizationName,
-      profilePicture: organizer.profilePicture,
+      profilePicture: getMediaUrl(organizer.profilePicture, "profile"),
       bio: organizer.bio,
       contactPerson: organizer.contactPerson,
       phone: organizer.phone,
       email: organizer.email,
       location: organizer.location,
       website: organizer.website,
-      photos: organizer.photos,
-      videos: organizer.videos,
+      photos: organizer.photos.map((photo) => getMediaUrl(photo, "photos")),
+      videos: organizer.videos.map((video) => getMediaUrl(video, "videos")),
       organizationType: organizer.organizationType,
       eventTypes: organizer.eventTypes,
-      verificationDocuments: organizer.verificationDocuments,
+      verificationDocuments: organizer.verificationDocuments.map((doc) =>
+        getMediaUrl(doc, "documents"),
+      ),
       isVerified: organizer.isVerified,
       isActive: organizer.isActive,
       createdAt: organizer.createdAt,

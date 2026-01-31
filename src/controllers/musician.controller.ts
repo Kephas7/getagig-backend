@@ -5,8 +5,8 @@ import {
   updateMusicianSchema,
 } from "../types/musicain.type";
 import { HttpError } from "../errors/http-error";
-import { getFileUrl } from "../middlewares/upload.middleware";
 import { IUser } from "../models/user.model";
+import { getFileUrl } from "../middlewares/upload.middleware";
 
 export class MusicianController {
   private musicianService: MusicianService;
@@ -189,12 +189,12 @@ export class MusicianController {
         throw new HttpError(400, "No file uploaded");
       }
 
-      const filepath = req.file.path;
-      const fileUrl = getFileUrl(req, filepath);
+      // Store relative path like /uploads/musicians/profile/uuid.ext
+      const filepath = getFileUrl(req, req.file.path);
 
       const musician = await this.musicianService.uploadProfilePicture(
         userId,
-        fileUrl,
+        filepath,
       );
 
       res.status(200).json({
@@ -216,6 +216,7 @@ export class MusicianController {
         throw new HttpError(400, "No files uploaded");
       }
 
+      // Store relative paths like /uploads/musicians/photos/uuid.ext
       const filepaths = req.files.map((file) => getFileUrl(req, file.path));
 
       const musician = await this.musicianService.addPhotos(userId, filepaths);
@@ -262,6 +263,7 @@ export class MusicianController {
         throw new HttpError(400, "No files uploaded");
       }
 
+      // Store relative paths like /uploads/musicians/videos/uuid.ext
       const filepaths = req.files.map((file) => getFileUrl(req, file.path));
 
       const musician = await this.musicianService.addVideos(userId, filepaths);
@@ -308,6 +310,7 @@ export class MusicianController {
         throw new HttpError(400, "No files uploaded");
       }
 
+      // Store relative paths like /uploads/musicians/audio/uuid.ext
       const filepaths = req.files.map((file) => getFileUrl(req, file.path));
 
       const musician = await this.musicianService.addAudioSamples(

@@ -180,15 +180,23 @@ export class MusicianService {
       throw new HttpError(404, "Musician profile not found");
     }
 
-    if (!musician.photos.includes(photoUrl)) {
+    // Handle both full paths and relative paths
+    const photoToRemove = musician.photos.find(
+      (photo) =>
+        photo === photoUrl ||
+        photo.endsWith(photoUrl) ||
+        photoUrl.includes(photo),
+    );
+
+    if (!photoToRemove) {
       throw new HttpError(400, "Photo not found in profile");
     }
 
-    deleteFile(photoUrl);
+    deleteFile(photoToRemove);
     const updated = await this.musicianRepository.removeMedia(
       userId,
       "photos",
-      photoUrl,
+      photoToRemove,
     );
 
     return this.toResponseDto(updated!);
@@ -228,15 +236,23 @@ export class MusicianService {
       throw new HttpError(404, "Musician profile not found");
     }
 
-    if (!musician.videos.includes(videoUrl)) {
+    // Handle both full paths and relative paths
+    const videoToRemove = musician.videos.find(
+      (video) =>
+        video === videoUrl ||
+        video.endsWith(videoUrl) ||
+        videoUrl.includes(video),
+    );
+
+    if (!videoToRemove) {
       throw new HttpError(400, "Video not found in profile");
     }
 
-    deleteFile(videoUrl);
+    deleteFile(videoToRemove);
     const updated = await this.musicianRepository.removeMedia(
       userId,
       "videos",
-      videoUrl,
+      videoToRemove,
     );
 
     return this.toResponseDto(updated!);
@@ -276,26 +292,54 @@ export class MusicianService {
       throw new HttpError(404, "Musician profile not found");
     }
 
-    if (!musician.audioSamples.includes(audioUrl)) {
+    // Handle both full paths and relative paths
+    const audioToRemove = musician.audioSamples.find(
+      (audio) =>
+        audio === audioUrl ||
+        audio.endsWith(audioUrl) ||
+        audioUrl.includes(audio),
+    );
+
+    if (!audioToRemove) {
       throw new HttpError(400, "Audio sample not found in profile");
     }
 
-    deleteFile(audioUrl);
+    deleteFile(audioToRemove);
     const updated = await this.musicianRepository.removeMedia(
       userId,
       "audioSamples",
-      audioUrl,
+      audioToRemove,
     );
 
     return this.toResponseDto(updated!);
   }
 
   private toResponseDto(musician: IMusician): MusicianResponseDto {
+    const getMediaUrl = (
+      filename: string | undefined,
+      type: string,
+    ): string => {
+      if (!filename) return "";
+
+      // If it's already a URL (absolute path), return as is
+      if (filename.startsWith("http://") || filename.startsWith("https://")) {
+        return filename;
+      }
+
+      // If it's already a relative path, return as is
+      if (filename.startsWith("/uploads/")) {
+        return filename;
+      }
+
+      // Otherwise construct the relative URL
+      return `/uploads/musicians/${type}/${filename}`;
+    };
+
     return {
       id: musician._id.toString(),
       userId: musician.userId.toString(),
       stageName: musician.stageName,
-      profilePicture: musician.profilePicture,
+      profilePicture: getMediaUrl(musician.profilePicture, "profile"),
       bio: musician.bio,
       phone: musician.phone,
       location: musician.location,
@@ -303,9 +347,11 @@ export class MusicianService {
       instruments: musician.instruments,
       experienceYears: musician.experienceYears,
       hourlyRate: musician.hourlyRate,
-      photos: musician.photos,
-      videos: musician.videos,
-      audioSamples: musician.audioSamples,
+      photos: musician.photos.map((photo) => getMediaUrl(photo, "photos")),
+      videos: musician.videos.map((video) => getMediaUrl(video, "videos")),
+      audioSamples: musician.audioSamples.map((audio) =>
+        getMediaUrl(audio, "audio"),
+      ),
       isAvailable: musician.isAvailable,
       createdAt: musician.createdAt,
       updatedAt: musician.updatedAt,
