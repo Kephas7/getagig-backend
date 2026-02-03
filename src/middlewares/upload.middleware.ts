@@ -1,5 +1,3 @@
-// src/middleware/upload.middleware.ts
-
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -29,12 +27,28 @@ const createUploadDirs = () => {
 createUploadDirs();
 
 // Helper function to determine user type from request
-const getUserType = (req: Request): "musicians" | "organizers" => {
-  // Check originalUrl first (this contains the full route)
+const getUserType = (req: Request, role?: string): "musicians" | "organizers" => {
   const url = req.originalUrl || req.url || req.path || "";
 
   if (url.includes("/organizers") || url.includes("/organizer")) {
     return "organizers";
+  }
+
+  // For admin routes, use the provided role parameter
+  if (url.includes("/admin/users")) {
+    if (role === "organizer") {
+      return "organizers";
+    }
+    return "musicians";
+  }
+
+  // For auth update routes, check the user's role
+  if (url.includes("/auth/")) {
+    const user = (req as any).user;
+    if (user && user.role === "organizer") {
+      return "organizers";
+    }
+    return "musicians";
   }
 
   return "musicians";
@@ -46,14 +60,12 @@ const getFolderFromFile = (
   mimetype: string,
   originalname: string,
 ): string => {
-  // Check field name first
   if (fieldname === "profilePicture") {
     return "profile";
   } else if (fieldname === "verificationDocuments") {
     return "documents";
   }
 
-  // Check mimetype
   if (mimetype.startsWith("video/")) {
     return "videos";
   } else if (mimetype.startsWith("audio/")) {
@@ -62,19 +74,8 @@ const getFolderFromFile = (
     return "photos";
   }
 
-  // Check file extension as fallback (important for Flutter/mobile clients)
   const ext = path.extname(originalname).toLowerCase();
-  const videoExts = [
-    ".mp4",
-    ".mov",
-    ".avi",
-    ".mkv",
-    ".webm",
-    ".m4v",
-    ".flv",
-    ".wmv",
-    ".3gp",
-  ];
+  const videoExts = [".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".flv", ".wmv", ".3gp"];
   const audioExts = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac", ".wma"];
   const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
   const docExts = [".pdf", ".doc", ".docx", ".txt"];
@@ -89,25 +90,23 @@ const getFolderFromFile = (
     return "documents";
   }
 
-  // Default to photos if unable to determine
   return "photos";
 };
 
-// Configure storage
+// Configure storage with access to form fields
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const userType = getUserType(req);
-    const folder = getFolderFromFile(
-      file.fieldname,
-      file.mimetype,
-      file.originalname,
-    );
+  destination: (req: any, file, cb) => {
+    // Try to get role from various sources - multer provides body through req.body
+    // Note: req.body might not be fully populated yet, but multer does make it available
+    let role = req.body?.role || req.query?.role || (req.user && req.user.role);
+    
+    const userType = getUserType(req, role);
+    const folder = getFolderFromFile(file.fieldname, file.mimetype, file.originalname);
     const finalPath = `uploads/${userType}/${folder}`;
 
     cb(null, finalPath);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename using UUID
     const uniqueId = uuidv4();
     const ext = path.extname(file.originalname);
     const filename = `${uniqueId}${ext}`;
@@ -116,9 +115,8 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter with extended support for Flutter/mobile clients
+// File filter
 const fileFilter = (req: any, file: any, cb: any) => {
-  // Allowed file types with extended format support
   const imageTypes = /jpeg|jpg|png|gif|webp|bmp|svg/;
   const videoTypes = /mp4|mov|avi|mkv|webm|m4v|flv|wmv|3gp/;
   const audioTypes = /mp3|wav|ogg|m4a|aac|flac|wma/;
@@ -126,12 +124,9 @@ const fileFilter = (req: any, file: any, cb: any) => {
 
   const ext = path.extname(file.originalname).toLowerCase();
   const mimetype = file.mimetype;
-
-  // Determine expected type based on field name
   const fieldname = file.fieldname;
 
   if (fieldname === "profilePicture" || fieldname === "photos") {
-    // Accept both by extension and mimetype to support mobile clients
     if (imageTypes.test(ext.slice(1)) || mimetype.startsWith("image/")) {
       return cb(null, true);
     }
@@ -149,7 +144,6 @@ const fileFilter = (req: any, file: any, cb: any) => {
     }
   }
 
-  // Fallback: accept based on mimetype alone for maximum compatibility
   const mimetypeCheck =
     mimetype.startsWith("image/") ||
     mimetype.startsWith("video/") ||
@@ -166,50 +160,37 @@ const fileFilter = (req: any, file: any, cb: any) => {
 // Upload configurations
 export const uploadSingle = multer({
   storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB for profile picture
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: fileFilter,
 }).single("profilePicture");
 
 export const uploadPhotos = multer({
   storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB per photo
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: fileFilter,
-}).array("photos", 20); // Max 20 photos
+}).array("photos", 20);
 
 export const uploadVideos = multer({
   storage: storage,
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB per video
-  },
+  limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: fileFilter,
-}).array("videos", 10); // Max 10 videos
+}).array("videos", 10);
 
 export const uploadAudio = multer({
   storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB per audio
-  },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: fileFilter,
-}).array("audioSamples", 10); // Max 10 audio files
+}).array("audioSamples", 10);
 
 export const uploadDocuments = multer({
   storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB per document
-  },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: fileFilter,
-}).array("verificationDocuments", 5); // Max 5 documents
+}).array("verificationDocuments", 5);
 
-// Multiple fields upload (for creating profile with all media at once)
 export const uploadMultiple = multer({
   storage: storage,
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB max
-  },
+  limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: fileFilter,
 }).fields([
   { name: "profilePicture", maxCount: 1 },
@@ -219,27 +200,25 @@ export const uploadMultiple = multer({
   { name: "verificationDocuments", maxCount: 5 },
 ]);
 
-// Helper function to get file URL - compatible with both Flutter and Web
+export const uploadUserProfile = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: fileFilter,
+}).single("profilePicture");
+
 export const getFileUrl = (req: any, filepath: string): string => {
-  // Return relative path for compatibility with both Flutter and Web
   return `/${filepath.replace(/\\/g, "/")}`;
 };
 
-// Helper function to delete file
 export const deleteFile = (filepath: string): void => {
-  if (!filepath) {
-    return;
-  }
+  if (!filepath) return;
 
-  // Remove the domain part if it exists
   let cleanPath = filepath;
 
-  // Handle various URL formats
   if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
     cleanPath = cleanPath.replace(/^https?:\/\/[^/]+\//, "");
   }
 
-  // Remove leading slash if present
   if (cleanPath.startsWith("/")) {
     cleanPath = cleanPath.slice(1);
   }
@@ -249,9 +228,7 @@ export const deleteFile = (filepath: string): void => {
       fs.unlinkSync(cleanPath);
       console.log(`✅ File deleted: ${cleanPath}`);
     } else {
-      console.log(
-        `⚠️  File not found for deletion: ${cleanPath} (original: ${filepath})`,
-      );
+      console.log(`⚠️  File not found for deletion: ${cleanPath}`);
     }
   } catch (error) {
     console.error(`❌ Error deleting file ${cleanPath}:`, error);

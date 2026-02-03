@@ -5,7 +5,7 @@ export const createOrganizerSchema = z.object({
     .string()
     .min(1, "Organization name is required")
     .max(200, "Organization name too long"),
-  profilePicture: z.string().url("Invalid URL").optional(),
+  profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000, "Bio cannot exceed 1000 characters").optional(),
   contactPerson: z
     .string()
@@ -19,20 +19,17 @@ export const createOrganizerSchema = z.object({
     country: z.string().min(1, "Country is required"),
   }),
   website: z.string().url("Invalid URL").optional(),
-  photos: z.array(z.string().url("Invalid photo URL")).optional().default([]),
-  videos: z.array(z.string().url("Invalid video URL")).optional().default([]),
+  photos: z.array(z.string()).optional().default([]),
+  videos: z.array(z.string()).optional().default([]),
   organizationType: z.string().min(1, "Organization type is required"),
   eventTypes: z.array(z.string()).min(1, "At least one event type is required"),
-  verificationDocuments: z
-    .array(z.string().url("Invalid document URL"))
-    .optional()
-    .default([]),
+  verificationDocuments: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
 });
 
 export const updateOrganizerSchema = z.object({
   organizationName: z.string().min(1).max(200).optional(),
-  profilePicture: z.string().url("Invalid URL").optional(),
+  profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000).optional(),
   contactPerson: z.string().min(1).max(100).optional(),
   phone: z.string().min(10).optional(),
@@ -45,10 +42,10 @@ export const updateOrganizerSchema = z.object({
     })
     .optional(),
   website: z.string().url("Invalid URL").optional(),
-  photos: z.array(z.string().url()).optional(),
-  videos: z.array(z.string().url()).optional(),
+  photos: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional(),
   organizationType: z.string().min(1).optional(),
   eventTypes: z.array(z.string()).min(1).optional(),
-  verificationDocuments: z.array(z.string().url()).optional(),
+  verificationDocuments: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });

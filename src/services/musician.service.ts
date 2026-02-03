@@ -315,46 +315,24 @@ export class MusicianService {
   }
 
   private toResponseDto(musician: IMusician): MusicianResponseDto {
-    const getMediaUrl = (
-      filename: string | undefined,
-      type: string,
-    ): string => {
-      if (!filename) return "";
-
-      // If it's already a URL (absolute path), return as is
-      if (filename.startsWith("http://") || filename.startsWith("https://")) {
-        return filename;
-      }
-
-      // If it's already a relative path, return as is
-      if (filename.startsWith("/uploads/")) {
-        return filename;
-      }
-
-      // Otherwise construct the relative URL
-      return `/uploads/musicians/${type}/${filename}`;
-    };
-
-    return {
-      id: musician._id.toString(),
-      userId: musician.userId.toString(),
-      stageName: musician.stageName,
-      profilePicture: getMediaUrl(musician.profilePicture, "profile"),
-      bio: musician.bio,
-      phone: musician.phone,
-      location: musician.location,
-      genres: musician.genres,
-      instruments: musician.instruments,
-      experienceYears: musician.experienceYears,
-      hourlyRate: musician.hourlyRate,
-      photos: musician.photos.map((photo) => getMediaUrl(photo, "photos")),
-      videos: musician.videos.map((video) => getMediaUrl(video, "videos")),
-      audioSamples: musician.audioSamples.map((audio) =>
-        getMediaUrl(audio, "audio"),
-      ),
-      isAvailable: musician.isAvailable,
-      createdAt: musician.createdAt,
-      updatedAt: musician.updatedAt,
-    };
-  }
+  return {
+    id: musician._id.toString(),
+    userId: musician.userId.toString(),
+    stageName: musician.stageName,
+    profilePicture: musician.profilePicture || "",
+    bio: musician.bio,
+    phone: musician.phone,
+    location: musician.location,
+    genres: musician.genres,
+    instruments: musician.instruments,
+    experienceYears: musician.experienceYears,
+    hourlyRate: musician.hourlyRate,
+    photos: musician.photos,
+    videos: musician.videos,
+    audioSamples: musician.audioSamples,
+    isAvailable: musician.isAvailable,
+    createdAt: musician.createdAt,
+    updatedAt: musician.updatedAt,
+  };
+}
 }

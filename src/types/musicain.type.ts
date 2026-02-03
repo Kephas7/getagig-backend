@@ -5,7 +5,7 @@ export const createMusicianSchema = z.object({
     .string()
     .min(1, "Stage name is required")
     .max(100, "Stage name too long"),
-  profilePicture: z.string().url("Invalid URL").optional(),
+  profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000, "Bio cannot exceed 1000 characters").optional(),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
   location: z.object({
@@ -19,18 +19,15 @@ export const createMusicianSchema = z.object({
     .min(1, "At least one instrument is required"),
   experienceYears: z.number().min(0, "Experience years cannot be negative"),
   hourlyRate: z.number().min(0, "Hourly rate cannot be negative").optional(),
-  photos: z.array(z.string().url("Invalid photo URL")).optional().default([]),
-  videos: z.array(z.string().url("Invalid video URL")).optional().default([]),
-  audioSamples: z
-    .array(z.string().url("Invalid audio URL"))
-    .optional()
-    .default([]),
+  photos: z.array(z.string()).optional().default([]),
+  videos: z.array(z.string()).optional().default([]),
+  audioSamples: z.array(z.string()).optional().default([]),
   isAvailable: z.boolean().optional().default(true),
 });
 
 export const updateMusicianSchema = z.object({
   stageName: z.string().min(1).max(100).optional(),
-  profilePicture: z.string().url("Invalid URL").optional(),
+  profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000).optional(),
   phone: z.string().min(10).optional(),
   location: z
@@ -44,9 +41,8 @@ export const updateMusicianSchema = z.object({
   instruments: z.array(z.string()).min(1).optional(),
   experienceYears: z.number().min(0).optional(),
   hourlyRate: z.number().min(0).optional(),
-  photos: z.array(z.string().url()).optional(),
-  videos: z.array(z.string().url()).optional(),
-  audioSamples: z.array(z.string().url()).optional(),
+  photos: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional(),
+  audioSamples: z.array(z.string()).optional(),
   isAvailable: z.boolean().optional(),
 });
-

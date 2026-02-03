@@ -6,11 +6,8 @@ import {
   uploadVideos,
   uploadDocuments,
 } from "../middlewares/upload.middleware";
-import {
-  authorizedMiddleWare,
-  adminMiddleWare,
-} from "../middlewares/authorized.middleware";
-import { rolesMiddleWare } from "../middlewares/roles.middleware";
+import { authorizedMiddleWare } from "../middlewares/authorized.middleware";
+import { rolesMiddleWare, adminOnly } from "../middlewares/roles.middleware";
 
 const router = Router();
 const organizerController = new OrganizerController();
@@ -58,7 +55,7 @@ router.patch(
 router.patch(
   "/verify",
   authorizedMiddleWare,
-  adminMiddleWare,
+  adminOnly,
   organizerController.updateVerification,
 );
 

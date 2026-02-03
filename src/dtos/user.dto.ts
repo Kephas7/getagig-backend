@@ -1,19 +1,22 @@
-import { z } from "zod";
+import z from "zod";
+import {
+  CreateUserSchema,
+  LoginUserSchema,
+  RegisterUserSchema,
+  UpdateUserSchema,
+} from "../types/user.type";
 
-export const RegisterUserDTO = z
-  .object({
-    username: z.string().min(2),
-    email: z.email(),
-    password: z.string().min(6),
-    role: z.enum(["musician", "organizer","admin"]).optional(),
-  })
+export type RegisterUserDto = z.infer<typeof RegisterUserSchema>;
+export type LoginUserDto = z.infer<typeof LoginUserSchema>;
+export type CreateUserDto = z.infer<typeof CreateUserSchema>;
+export type UpdateUserDto = z.infer<typeof UpdateUserSchema>;
 
-
-export type RegisterUserDTO = z.infer<typeof RegisterUserDTO>;
-
-export const LoginUserDTO = z.object({
-  email: z.email(),
-  password: z.string().min(6),
-});
-
-export type LoginUserDTO = z.infer<typeof LoginUserDTO>;
+export interface UserResponseDto {
+  id: string;
+  username: string;
+  email: string;
+  role: "musician" | "organizer" | "admin";
+  profilePicture?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
