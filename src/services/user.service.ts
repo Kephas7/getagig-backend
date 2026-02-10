@@ -12,6 +12,8 @@ import {
 import { UserRepository } from "../repositories/user.repository";
 import { IUser } from "../models/user.model";
 import { deleteFile } from "../middlewares/upload.middleware";
+import { sendEmail } from "../config/email";
+const CLIENT_URL = process.env.CLIENT_URL as string;
 
 let userRepository = new UserRepository();
 
@@ -258,4 +260,36 @@ export class UserService {
       updatedAt: user.updatedAt,
     };
   }
+  async sendResetPasswordEmail(email?: string){
+    if(!email){
+      throw new HttpError(400, "Email is required");
+    }
+    const user = await userRepository.getUserByEmail(email);
+    if(!user){
+      throw new HttpError(404, "User not found");
+    }
+    const token = jwt.sign({id: user._id}, JWT_SECRET, {expiresIn: "1h"});
+  
+    const resetLink = `${CLIENT_URL}/reset-password/${token}`;
+    const html =`<p> Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
+    await sendEmail(email, "Reset Password", html);
+    return user;
+  }
+  async resetPassword(token?: string, password?: string){
+    if(!token || !password){
+      throw new HttpError(400, "Token and password are required");
+    }
+    const decodedToken = jwt.verify(token, JWT_SECRET) as { id: string };
+    const userId = decodedToken.id;
+    const user = await userRepository.getUserById(userId);
+    if(!user){
+      throw new HttpError(404, "User not found");
+    }
+    const hashedPassword = await bcryptjs.hash(password!, 10);
+    const updatedUser = await userRepository.updateUser(userId, {password: hashedPassword});
+    if(!updatedUser){
+      throw new HttpError(404, "User not found");
+    }
+    return updatedUser;
+  } 
 }

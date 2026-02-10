@@ -18,10 +18,7 @@ export class AuthController {
     this.userService = new UserService();
   }
 
-  /**
-   * POST /api/auth/register
-   * Register a new user
-   */
+
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validatedData = RegisterUserSchema.parse(req.body);
@@ -42,10 +39,7 @@ export class AuthController {
     }
   };
 
-  /**
-   * POST /api/auth/login
-   * Login user and return JWT token
-   */
+
   login = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validatedData = LoginUserSchema.parse(req.body);
@@ -61,10 +55,7 @@ export class AuthController {
     }
   };
 
-  /**
-   * GET /api/auth/me
-   * Get current authenticated user's information
-   */
+
   getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as IUser;
@@ -81,11 +72,7 @@ export class AuthController {
     }
   };
 
-  /**
-   * PUT /api/auth/profile/:id
-   * Update own profile with optional profile picture
-   * Users can only update their own profile
-   */
+
   updateOwnProfile = async (
     req: Request,
     res: Response,
@@ -95,7 +82,7 @@ export class AuthController {
       const { id } = req.params;
       const user = req.user as IUser;
 
-      // Security check: Users can only update their own profile
+
       if (user._id.toString() !== id) {
         if (req.file) {
           deleteFile(getFileUrl(req, req.file.path));
@@ -108,7 +95,7 @@ export class AuthController {
         ? getFileUrl(req, req.file.path)
         : undefined;
 
-      // Build update object with only provided fields
+
       const updateData: Partial<UpdateUserDto> = {};
 
       if (userData.username !== undefined)
@@ -118,7 +105,7 @@ export class AuthController {
         updateData.password = userData.password;
       if (uploadedFilePath) updateData.profilePicture = uploadedFilePath;
 
-      // Validate update data
+
       const validatedData = UpdateUserSchema.parse(updateData);
 
       const updatedUser = await this.userService.updateOwnProfile(
@@ -132,11 +119,44 @@ export class AuthController {
         data: updatedUser,
       });
     } catch (error) {
-      // Clean up uploaded file on any error
+
       if (req.file) {
         deleteFile(getFileUrl(req, req.file.path));
       }
       next(error);
+    }
+  };
+  sendResetPasswordEmail = async (req: Request, res: Response) => {
+    try {
+      const email = req.body.email;
+      const user = await this.userService.sendResetPasswordEmail(email);
+      return res.status(200).json(
+        {
+          success: true,
+          data: user,
+          message: "If the email is registered, a reset link has been sent."
+        }
+      );
+    } catch (error: Error | any) {
+      return res.status(error.statusCode ?? 500).json(
+        { success: false, message: error.message || "Internal Server Error" }
+      );
+    }
+  };
+  resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.params.token as string;
+      const { password } = req.body;
+      await this.userService.resetPassword(token, password);
+      return res.status(200).json({
+        success: true,
+        message: "Password reset successful",
+      });
+
+    } catch (error: Error | any) {
+      return res.status(error.statusCode ?? 500).json(
+        { success: false, message: error.message || "Internal Server Error" }
+      );
     }
   };
 }
