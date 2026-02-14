@@ -2,11 +2,16 @@ import { z } from "zod";
 
 export const RegisterUserSchema = z.object({
   username: z.string().min(2),
-  email: z.email(),
+  email: z.string().email(),
   password: z.string().min(6),
+  confirmPassword: z.string().min(6),
   role: z.enum(["musician", "organizer", "admin"]).optional(),
   profilePicture: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
+
 
 export const LoginUserSchema = z.object({
   email: z.email(),
