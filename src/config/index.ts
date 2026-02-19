@@ -9,4 +9,8 @@ export const PORT: number = process.env.PORT
 export const MONGODB_URI: string =
   process.env.MONGODB_URI || "mongodb://localhost:27017/default_db";
 
-export const JWT_SECRET: string = process.env.JWT_SECRET || "default";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined in environment variables");
+}
+
+export const JWT_SECRET: string = process.env.JWT_SECRET;

@@ -37,9 +37,17 @@ export async function authorizedMiddleWare(
     req.user = user;
     return next();
   } catch (err: Error | any) {
+    let statusCode = err.statusCode || 500;
+    let message = err.message || "Unauthorized";
+
+    if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
+      statusCode = 401;
+      message = "Unauthorized, Invalid or Expired Token";
+    }
+
     return res
-      .status(err.statusCode || 500)
-      .json({ success: false, message: err.message || "Unauthorized" });
+      .status(statusCode)
+      .json({ success: false, message });
   }
 }
 

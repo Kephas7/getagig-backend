@@ -1,5 +1,6 @@
 import { MusicianModel, IMusician } from "../models/musician.model";
 import { CreateMusicianDto, UpdateMusicianDto } from "../dtos/musician.dto";
+import { sanitizeRegex } from "../utils/regex";
 
 export class MusicianRepository {
   async create(userId: string, data: CreateMusicianDto): Promise<IMusician> {
@@ -57,14 +58,15 @@ export class MusicianRepository {
 
     const query: any = {};
 
-    if (city) query["location.city"] = new RegExp(city, "i");
-    if (country) query["location.country"] = new RegExp(country, "i");
+    if (city) query["location.city"] = new RegExp(sanitizeRegex(city), "i");
+    if (country) query["location.country"] = new RegExp(sanitizeRegex(country), "i");
     if (genres && genres.length > 0) query.genres = { $in: genres };
     if (instruments && instruments.length > 0)
       query.instruments = { $in: instruments };
     if (isAvailable !== undefined) query.isAvailable = isAvailable;
 
-    const skip = (page - 1) * limit;
+    const validatedPage = Math.max(1, page);
+    const skip = (validatedPage - 1) * limit;
 
     const [musicians, total] = await Promise.all([
       MusicianModel.find(query)

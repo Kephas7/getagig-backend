@@ -1,5 +1,6 @@
 import { OrganizerModel, IOrganizer } from "../models/organizer.model";
 import { CreateOrganizerDto, UpdateOrganizerDto } from "../dtos/organizer.dto";
+import { sanitizeRegex } from "../utils/regex";
 
 export class OrganizerRepository {
   async create(userId: string, data: CreateOrganizerDto): Promise<IOrganizer> {
@@ -59,16 +60,17 @@ export class OrganizerRepository {
 
     const query: any = {};
 
-    if (city) query["location.city"] = new RegExp(city, "i");
-    if (country) query["location.country"] = new RegExp(country, "i");
+    if (city) query["location.city"] = new RegExp(sanitizeRegex(city), "i");
+    if (country) query["location.country"] = new RegExp(sanitizeRegex(country), "i");
     if (organizationType)
-      query.organizationType = new RegExp(organizationType, "i");
+      query.organizationType = new RegExp(sanitizeRegex(organizationType), "i");
     if (eventTypes && eventTypes.length > 0)
       query.eventTypes = { $in: eventTypes };
     if (isVerified !== undefined) query.isVerified = isVerified;
     if (isActive !== undefined) query.isActive = isActive;
 
-    const skip = (page - 1) * limit;
+    const validatedPage = Math.max(1, page);
+    const skip = (validatedPage - 1) * limit;
 
     const [organizers, total] = await Promise.all([
       OrganizerModel.find(query)

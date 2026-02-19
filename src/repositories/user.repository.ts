@@ -32,8 +32,9 @@ export class UserRepository implements IUserRepository {
   }
 
   async getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: IUser[]; total: number }> {
-    const skip = (page - 1) * limit;
-    
+    const validatedPage = Math.max(1, page);
+    const skip = (validatedPage - 1) * limit;
+
     const [users, total] = await Promise.all([
       UserModel.find()
         .select('-password')

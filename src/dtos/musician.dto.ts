@@ -2,7 +2,7 @@ import z from "zod";
 import {
   createMusicianSchema,
   updateMusicianSchema,
-} from "../types/musicain.type";
+} from "../types/musician.type";
 
 export type CreateMusicianDto = z.infer<typeof createMusicianSchema>;
 export type UpdateMusicianDto = z.infer<typeof updateMusicianSchema>;

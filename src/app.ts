@@ -1,7 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import userRoutes from "./routes/user.route";
-import musicianRoutes from "./routes/musicain.routes";
+import musicianRoutes from "./routes/musician.routes";
 import organizerRoutes from "./routes/organizer.routes";
 import adminRoutes from "./routes/admin/user.route";
 import cors from "cors";

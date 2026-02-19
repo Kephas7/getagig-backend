@@ -4,7 +4,7 @@ import { MusicianService } from "../services/musician.service";
 import {
   createMusicianSchema,
   updateMusicianSchema,
-} from "../types/musicain.type";
+} from "../types/musician.type";
 import { HttpError } from "../errors/http-error";
 import { IUser } from "../models/user.model";
 import { getFileUrl } from "../middlewares/upload.middleware";
