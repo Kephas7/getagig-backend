@@ -9,6 +9,12 @@ export interface GigResponseDto {
     title: string;
     description: string;
     organizerId: string;
+    organizer?: {
+        _id: string;
+        username: string;
+        email: string;
+        role: string;
+    };
     location: {
         city: string;
         state: string;
