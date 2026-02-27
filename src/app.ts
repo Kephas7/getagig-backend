@@ -4,6 +4,11 @@ import userRoutes from "./routes/user.route";
 import musicianRoutes from "./routes/musician.routes";
 import organizerRoutes from "./routes/organizer.routes";
 import adminRoutes from "./routes/admin/user.route";
+import gigRoutes from "./routes/gig.routes";
+import applicationRoutes from "./routes/application.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import messageRoutes from "./routes/message.routes";
+import notificationRoutes from "./routes/notification.routes";
 import cors from "cors";
 import { HttpError } from "./errors/http-error";
 import { ZodError } from "zod";
@@ -34,6 +39,19 @@ app.use("/api/organizers", organizerRoutes);
 
 //admin routes
 app.use("/api/admin/users", adminRoutes);
+
+// gig routes
+app.use("/api/gigs", gigRoutes);
+
+// application routes
+app.use("/api/applications", applicationRoutes);
+
+// dashboard routes
+app.use("/api/dashboard", dashboardRoutes);
+
+// messaging and notifications routes
+app.use("/api/messages", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Error Handling Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
