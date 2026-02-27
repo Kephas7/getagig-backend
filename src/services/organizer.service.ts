@@ -183,9 +183,7 @@ export class OrganizerService {
       throw new HttpError(400, "Cannot exceed 20 photos limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.organizerRepository.addMedia(userId, "photos", filepath);
-    }
+    await this.organizerRepository.addMedia(userId, "photos", filepaths);
 
     const updated = await this.organizerRepository.findByUserId(userId);
     return this.toResponseDto(updated!);
@@ -239,9 +237,7 @@ export class OrganizerService {
       throw new HttpError(400, "Cannot exceed 10 videos limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.organizerRepository.addMedia(userId, "videos", filepath);
-    }
+    await this.organizerRepository.addMedia(userId, "videos", filepaths);
 
     const updated = await this.organizerRepository.findByUserId(userId);
     return this.toResponseDto(updated!);
@@ -295,13 +291,11 @@ export class OrganizerService {
       throw new HttpError(400, "Cannot exceed 5 verification documents limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.organizerRepository.addMedia(
-        userId,
-        "verificationDocuments",
-        filepath,
-      );
-    }
+    await this.organizerRepository.addMedia(
+      userId,
+      "verificationDocuments",
+      filepaths,
+    );
 
     const updated = await this.organizerRepository.findByUserId(userId);
     return this.toResponseDto(updated!);

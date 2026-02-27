@@ -162,9 +162,7 @@ export class MusicianService {
       throw new HttpError(400, "Cannot exceed 10 photos limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.musicianRepository.addMedia(userId, "photos", filepath);
-    }
+    await this.musicianRepository.addMedia(userId, "photos", filepaths);
 
     const updated = await this.musicianRepository.findByUserId(userId);
     return this.toResponseDto(updated!);
@@ -218,9 +216,7 @@ export class MusicianService {
       throw new HttpError(400, "Cannot exceed 5 videos limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.musicianRepository.addMedia(userId, "videos", filepath);
-    }
+    await this.musicianRepository.addMedia(userId, "videos", filepaths);
 
     const updated = await this.musicianRepository.findByUserId(userId);
     return this.toResponseDto(updated!);
@@ -274,9 +270,7 @@ export class MusicianService {
       throw new HttpError(400, "Cannot exceed 10 audio samples limit");
     }
 
-    for (const filepath of filepaths) {
-      await this.musicianRepository.addMedia(userId, "audioSamples", filepath);
-    }
+    await this.musicianRepository.addMedia(userId, "audioSamples", filepaths);
 
     const updated = await this.musicianRepository.findByUserId(userId);
     return this.toResponseDto(updated!);
@@ -315,24 +309,24 @@ export class MusicianService {
   }
 
   private toResponseDto(musician: IMusician): MusicianResponseDto {
-  return {
-    id: musician._id.toString(),
-    userId: musician.userId.toString(),
-    stageName: musician.stageName,
-    profilePicture: musician.profilePicture || "",
-    bio: musician.bio,
-    phone: musician.phone,
-    location: musician.location,
-    genres: musician.genres,
-    instruments: musician.instruments,
-    experienceYears: musician.experienceYears,
-    hourlyRate: musician.hourlyRate,
-    photos: musician.photos,
-    videos: musician.videos,
-    audioSamples: musician.audioSamples,
-    isAvailable: musician.isAvailable,
-    createdAt: musician.createdAt,
-    updatedAt: musician.updatedAt,
-  };
-}
+    return {
+      id: musician._id.toString(),
+      userId: musician.userId.toString(),
+      stageName: musician.stageName,
+      profilePicture: musician.profilePicture || "",
+      bio: musician.bio,
+      phone: musician.phone,
+      location: musician.location,
+      genres: musician.genres,
+      instruments: musician.instruments,
+      experienceYears: musician.experienceYears,
+      hourlyRate: musician.hourlyRate,
+      photos: musician.photos,
+      videos: musician.videos,
+      audioSamples: musician.audioSamples,
+      isAvailable: musician.isAvailable,
+      createdAt: musician.createdAt,
+      updatedAt: musician.updatedAt,
+    };
+  }
 }

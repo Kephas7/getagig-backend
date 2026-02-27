@@ -260,36 +260,57 @@ export class UserService {
       updatedAt: user.updatedAt,
     };
   }
-  async sendResetPasswordEmail(email?: string){
-    if(!email){
+  async sendResetPasswordEmail(email?: string, clientUrl?: string) {
+    if (!email) {
       throw new HttpError(400, "Email is required");
     }
     const user = await userRepository.getUserByEmail(email);
-    if(!user){
+    if (!user) {
       throw new HttpError(404, "User not found");
     }
-    const token = jwt.sign({id: user._id}, JWT_SECRET, {expiresIn: "1h"});
-  
-    const resetLink = `${CLIENT_URL}/reset-password/${token}`;
-    const html =`<p> Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+
+    const baseUrl = clientUrl || CLIENT_URL;
+    const resetLink = `${baseUrl}/reset-password/${token}`;
+    const html = `<p> Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
     await sendEmail(email, "Reset Password", html);
     return user;
   }
-  async resetPassword(token?: string, password?: string){
-    if(!token || !password){
+  async resetPassword(token?: string, password?: string) {
+    if (!token || !password) {
       throw new HttpError(400, "Token and password are required");
     }
     const decodedToken = jwt.verify(token, JWT_SECRET) as { id: string };
     const userId = decodedToken.id;
     const user = await userRepository.getUserById(userId);
-    if(!user){
+    if (!user) {
       throw new HttpError(404, "User not found");
     }
     const hashedPassword = await bcryptjs.hash(password!, 10);
-    const updatedUser = await userRepository.updateUser(userId, {password: hashedPassword});
-    if(!updatedUser){
+    const updatedUser = await userRepository.updateUser(userId, {
+      password: hashedPassword,
+    });
+    if (!updatedUser) {
       throw new HttpError(404, "User not found");
     }
     return updatedUser;
-  } 
+  }
+
+  async registerDeviceToken(userId: string, token: string, platform?: string) {
+    if (!token) throw new HttpError(400, "Device token is required");
+    const updated = await userRepository.addDeviceToken(
+      userId,
+      token,
+      platform,
+    );
+    if (!updated) throw new HttpError(404, "User not found");
+    return this.toResponseDto(updated as IUser);
+  }
+
+  async unregisterDeviceToken(userId: string, token: string) {
+    if (!token) throw new HttpError(400, "Device token is required");
+    const updated = await userRepository.removeDeviceToken(userId, token);
+    if (!updated) throw new HttpError(404, "User not found");
+    return this.toResponseDto(updated as IUser);
+  }
 }
