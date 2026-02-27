@@ -104,7 +104,6 @@ const MusicianSchema: Schema = new Schema(
   },
 );
 
-MusicianSchema.index({ userId: 1 });
 MusicianSchema.index({ "location.city": 1, "location.country": 1 });
 MusicianSchema.index({ genres: 1 });
 MusicianSchema.index({ instruments: 1 });

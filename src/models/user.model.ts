@@ -6,6 +6,8 @@ export interface IUser extends Document {
   password: string;
   role: "musician" | "organizer" | "admin";
   profilePicture?: string;
+  // Array of registered push device tokens (FCM tokens)
+  deviceTokens?: { token: string; platform?: string; createdAt?: Date }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,8 +23,15 @@ const UserSchema = new Schema<IUser>(
       default: "musician",
     },
     profilePicture: { type: String },
+    deviceTokens: [
+      {
+        token: { type: String },
+        platform: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const UserModel = mongoose.model<IUser>("User", UserSchema);

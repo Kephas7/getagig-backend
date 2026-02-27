@@ -114,7 +114,6 @@ const OrganizerSchema: Schema = new Schema(
   },
 );
 
-OrganizerSchema.index({ userId: 1 });
 OrganizerSchema.index({ "location.city": 1, "location.country": 1 });
 OrganizerSchema.index({ organizationType: 1 });
 OrganizerSchema.index({ eventTypes: 1 });
