@@ -99,11 +99,15 @@ export class MusicianRepository {
   async addMedia(
     userId: string,
     mediaType: "photos" | "videos" | "audioSamples",
-    url: string,
+    urls: string | string[],
   ): Promise<IMusician | null> {
+    const updateQuery = Array.isArray(urls)
+      ? { $addToSet: { [mediaType]: { $each: urls } } }
+      : { $addToSet: { [mediaType]: urls } };
+
     return await MusicianModel.findOneAndUpdate(
       { userId },
-      { $push: { [mediaType]: url } },
+      updateQuery,
       { new: true },
     );
   }

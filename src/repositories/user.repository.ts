@@ -5,9 +5,18 @@ export interface IUserRepository {
   getUserByUsername(username: string): Promise<IUser | null>;
   createUser(userData: Partial<IUser>): Promise<IUser>;
   getUserById(id: string): Promise<IUser | null>;
-  getAllUsers(page?: number, limit?: number): Promise<{ users: IUser[]; total: number }>;
+  getAllUsers(
+    page?: number,
+    limit?: number,
+  ): Promise<{ users: IUser[]; total: number }>;
   updateUser(id: string, updateData: Partial<IUser>): Promise<IUser | null>;
   deleteUser(id: string): Promise<boolean>;
+  addDeviceToken(
+    userId: string,
+    token: string,
+    platform?: string,
+  ): Promise<IUser | null>;
+  removeDeviceToken(userId: string, token: string): Promise<IUser | null>;
 }
 
 export class UserRepository implements IUserRepository {
@@ -31,13 +40,16 @@ export class UserRepository implements IUserRepository {
     return user;
   }
 
-  async getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: IUser[]; total: number }> {
+  async getAllUsers(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ users: IUser[]; total: number }> {
     const validatedPage = Math.max(1, page);
     const skip = (validatedPage - 1) * limit;
 
     const [users, total] = await Promise.all([
       UserModel.find()
-        .select('-password')
+        .select("-password")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 }),
@@ -47,16 +59,48 @@ export class UserRepository implements IUserRepository {
     return { users, total };
   }
 
-  async updateUser(id: string, updateData: Partial<IUser>): Promise<IUser | null> {
+  async updateUser(
+    id: string,
+    updateData: Partial<IUser>,
+  ): Promise<IUser | null> {
     const updatedUser = await UserModel.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).select('-password');
+    }).select("-password");
     return updatedUser;
   }
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await UserModel.findByIdAndDelete(id);
     return result ? true : false;
+  }
+
+  async addDeviceToken(
+    userId: string,
+    token: string,
+    platform?: string,
+  ): Promise<IUser | null> {
+    const updated = await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: { deviceTokens: { token, platform, createdAt: new Date() } },
+      },
+      { new: true },
+    ).select("-password");
+
+    return updated;
+  }
+
+  async removeDeviceToken(
+    userId: string,
+    token: string,
+  ): Promise<IUser | null> {
+    const updated = await UserModel.findByIdAndUpdate(
+      userId,
+      { $pull: { deviceTokens: { token } } },
+      { new: true },
+    ).select("-password");
+
+    return updated;
   }
 }

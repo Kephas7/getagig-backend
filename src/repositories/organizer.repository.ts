@@ -114,11 +114,15 @@ export class OrganizerRepository {
   async addMedia(
     userId: string,
     mediaType: "photos" | "videos" | "verificationDocuments",
-    url: string,
+    urls: string | string[],
   ): Promise<IOrganizer | null> {
+    const updateQuery = Array.isArray(urls)
+      ? { $addToSet: { [mediaType]: { $each: urls } } }
+      : { $addToSet: { [mediaType]: urls } };
+
     return await OrganizerModel.findOneAndUpdate(
       { userId },
-      { $push: { [mediaType]: url } },
+      updateQuery,
       { new: true },
     );
   }
