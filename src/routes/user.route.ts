@@ -6,7 +6,6 @@ import { uploadUserProfile } from "../middlewares/upload.middleware";
 const router = Router();
 const authController = new AuthController();
 
-
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/forgot-password", authController.sendResetPasswordEmail);
@@ -16,5 +15,7 @@ router.use(authorizedMiddleWare);
 
 router.get("/me", authController.getCurrentUser);
 router.put("/profile/:id", uploadUserProfile, authController.updateOwnProfile);
+router.post("/me/device-token", authController.registerDeviceToken);
+router.delete("/me/device-token", authController.unregisterDeviceToken);
 
 export default router;
