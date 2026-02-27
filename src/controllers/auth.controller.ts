@@ -18,7 +18,6 @@ export class AuthController {
     this.userService = new UserService();
   }
 
-
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validatedData = RegisterUserSchema.parse(req.body);
@@ -39,7 +38,6 @@ export class AuthController {
     }
   };
 
-
   login = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validatedData = LoginUserSchema.parse(req.body);
@@ -54,7 +52,6 @@ export class AuthController {
       next(error);
     }
   };
-
 
   getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -72,7 +69,6 @@ export class AuthController {
     }
   };
 
-
   updateOwnProfile = async (
     req: Request,
     res: Response,
@@ -81,7 +77,6 @@ export class AuthController {
     try {
       const { id } = req.params;
       const user = req.user as IUser;
-
 
       if (user._id.toString() !== id) {
         if (req.file) {
@@ -95,7 +90,6 @@ export class AuthController {
         ? getFileUrl(req, req.file.path)
         : undefined;
 
-
       const updateData: Partial<UpdateUserDto> = {};
 
       if (userData.username !== undefined)
@@ -104,7 +98,6 @@ export class AuthController {
       if (userData.password !== undefined)
         updateData.password = userData.password;
       if (uploadedFilePath) updateData.profilePicture = uploadedFilePath;
-
 
       const validatedData = UpdateUserSchema.parse(updateData);
 
@@ -119,7 +112,6 @@ export class AuthController {
         data: updatedUser,
       });
     } catch (error) {
-
       if (req.file) {
         deleteFile(getFileUrl(req, req.file.path));
       }
@@ -128,19 +120,20 @@ export class AuthController {
   };
   sendResetPasswordEmail = async (req: Request, res: Response) => {
     try {
-      const email = req.body.email;
-      const user = await this.userService.sendResetPasswordEmail(email);
-      return res.status(200).json(
-        {
-          success: true,
-          data: user,
-          message: "If the email is registered, a reset link has been sent."
-        }
-      );
+      const { email, clientUrl } = req.body;
+      const user = await this.userService.sendResetPasswordEmail(email, clientUrl);
+      return res.status(200).json({
+        success: true,
+        data: user,
+        message: "If the email is registered, a reset link has been sent.",
+      });
     } catch (error: Error | any) {
-      return res.status(error.statusCode ?? 500).json(
-        { success: false, message: error.message || "Internal Server Error" }
-      );
+      return res
+        .status(error.statusCode ?? 500)
+        .json({
+          success: false,
+          message: error.message || "Internal Server Error",
+        });
     }
   };
   resetPassword = async (req: Request, res: Response, next: NextFunction) => {
@@ -152,11 +145,51 @@ export class AuthController {
         success: true,
         message: "Password reset successful",
       });
-
     } catch (error: Error | any) {
-      return res.status(error.statusCode ?? 500).json(
-        { success: false, message: error.message || "Internal Server Error" }
+      return res
+        .status(error.statusCode ?? 500)
+        .json({
+          success: false,
+          message: error.message || "Internal Server Error",
+        });
+    }
+  };
+
+  // Register a device token (FCM) for current user
+  registerDeviceToken = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const { token, platform } = req.body;
+      const result = await this.userService.registerDeviceToken(
+        user._id.toString(),
+        token,
+        platform,
       );
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  unregisterDeviceToken = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const { token } = req.body;
+      const result = await this.userService.unregisterDeviceToken(
+        user._id.toString(),
+        token,
+      );
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
     }
   };
 }
