@@ -12,6 +12,8 @@ import notificationRoutes from "./routes/notification.routes";
 import cors from "cors";
 import { HttpError } from "./errors/http-error";
 import { ZodError } from "zod";
+import { authorizedMiddleWare } from "./middlewares/authorized.middleware";
+import { adminOnly } from "./middlewares/roles.middleware";
 
 const app: Application = express();
 const corsOptions = {
@@ -26,7 +28,29 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use("/uploads", express.static("uploads"));
+
+// Public media only (profile pictures and public portfolios)
+app.use("/uploads/musicians", express.static("uploads/musicians"));
+app.use(
+  "/uploads/organizers/photos",
+  express.static("uploads/organizers/photos"),
+);
+app.use(
+  "/uploads/organizers/videos",
+  express.static("uploads/organizers/videos"),
+);
+app.use(
+  "/uploads/organizers/profile",
+  express.static("uploads/organizers/profile"),
+);
+
+// Sensitive organizer verification documents are admin-only
+app.use(
+  "/uploads/organizers/documents",
+  authorizedMiddleWare,
+  adminOnly,
+  express.static("uploads/organizers/documents"),
+);
 
 //auth routes
 app.use("/api/auth", userRoutes);
@@ -72,7 +96,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
       })),
     });
   }
-
 
   console.error("Unhandled Error:", err);
   return res.status(500).json({
