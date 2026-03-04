@@ -10,12 +10,22 @@ import {
   UserResponseDto,
 } from "../dtos/user.dto";
 import { UserRepository } from "../repositories/user.repository";
+import { MusicianRepository } from "../repositories/musician.repository";
+import { OrganizerRepository } from "../repositories/organizer.repository";
 import { IUser } from "../models/user.model";
 import { deleteFile } from "../middlewares/upload.middleware";
 import { sendEmail } from "../config/email";
 const CLIENT_URL = process.env.CLIENT_URL as string;
 
 let userRepository = new UserRepository();
+let musicianRepository = new MusicianRepository();
+let organizerRepository = new OrganizerRepository();
+
+type VerificationMeta = {
+  isVerified?: boolean;
+  verificationRequested?: boolean;
+  profileId?: string;
+};
 
 export class UserService {
   async registerUser(data: RegisterUserDto) {
@@ -62,7 +72,7 @@ export class UserService {
       throw new HttpError(404, "User not found");
     }
 
-    return this.toResponseDto(user);
+    return this.toResponseDto(user, await this.getVerificationMeta(user));
   }
 
   async createUserByAdmin(data: CreateUserDto): Promise<UserResponseDto> {
@@ -100,8 +110,14 @@ export class UserService {
     const { users, total } = await userRepository.getAllUsers(page, limit);
     const totalPages = Math.ceil(total / limit);
 
+    const usersWithVerification = await Promise.all(
+      users.map(async (user) =>
+        this.toResponseDto(user, await this.getVerificationMeta(user)),
+      ),
+    );
+
     return {
-      users: users.map((user) => this.toResponseDto(user)),
+      users: usersWithVerification,
       total,
       page,
       totalPages,
@@ -114,7 +130,7 @@ export class UserService {
       throw new HttpError(404, "User not found");
     }
 
-    return this.toResponseDto(user);
+    return this.toResponseDto(user, await this.getVerificationMeta(user));
   }
 
   async updateUserByAdmin(
@@ -249,16 +265,48 @@ export class UserService {
     return this.toResponseDto(updatedUser!);
   }
 
-  private toResponseDto(user: IUser): UserResponseDto {
+  private toResponseDto(
+    user: IUser,
+    verificationMeta?: VerificationMeta,
+  ): UserResponseDto {
     return {
       id: user._id.toString(),
       username: user.username,
       email: user.email,
       role: user.role,
+      isVerified: verificationMeta?.isVerified,
+      verificationRequested: verificationMeta?.verificationRequested,
+      profileId: verificationMeta?.profileId,
       profilePicture: user.profilePicture,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  private async getVerificationMeta(user: IUser): Promise<VerificationMeta> {
+    if (user.role === "musician") {
+      const musicianProfile = await musicianRepository.findByUserId(
+        user._id.toString(),
+      );
+      return {
+        isVerified: musicianProfile?.isVerified ?? false,
+        verificationRequested: musicianProfile?.verificationRequested ?? false,
+        profileId: musicianProfile?._id?.toString(),
+      };
+    }
+
+    if (user.role === "organizer") {
+      const organizerProfile = await organizerRepository.findByUserId(
+        user._id.toString(),
+      );
+      return {
+        isVerified: organizerProfile?.isVerified ?? false,
+        verificationRequested: organizerProfile?.verificationRequested ?? false,
+        profileId: organizerProfile?._id?.toString(),
+      };
+    }
+
+    return {};
   }
   async sendResetPasswordEmail(email?: string, clientUrl?: string) {
     if (!email) {
@@ -266,7 +314,7 @@ export class UserService {
     }
     const user = await userRepository.getUserByEmail(email);
     if (!user) {
-      throw new HttpError(404, "User not found");
+      return;
     }
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
 
@@ -280,7 +328,14 @@ export class UserService {
     if (!token || !password) {
       throw new HttpError(400, "Token and password are required");
     }
-    const decodedToken = jwt.verify(token, JWT_SECRET) as { id: string };
+    let decodedToken: { id: string };
+
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET) as { id: string };
+    } catch {
+      throw new HttpError(400, "Invalid or expired reset token");
+    }
+
     const userId = decodedToken.id;
     const user = await userRepository.getUserById(userId);
     if (!user) {

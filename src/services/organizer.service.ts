@@ -7,12 +7,16 @@ import {
 import { IOrganizer } from "../models/organizer.model";
 import { HttpError } from "../errors/http-error";
 import { deleteFile } from "../middlewares/upload.middleware";
+import { NotificationService } from "./notification.service";
+import { UserModel } from "../models/user.model";
 
 export class OrganizerService {
   private organizerRepository: OrganizerRepository;
+  private notificationService: NotificationService;
 
   constructor() {
     this.organizerRepository = new OrganizerRepository();
+    this.notificationService = new NotificationService();
   }
 
   async createProfile(
@@ -84,8 +88,7 @@ export class OrganizerService {
   }
 
   async searchOrganizers(filters: {
-    city?: string;
-    country?: string;
+    location?: string;
     organizationType?: string;
     eventTypes?: string[];
     isVerified?: boolean;
@@ -132,7 +135,20 @@ export class OrganizerService {
   async updateVerification(
     userId: string,
     isVerified: boolean,
+    rejectionReason?: string,
   ): Promise<OrganizerResponseDto> {
+    const existing = await this.organizerRepository.findByUserId(userId);
+    if (!existing) {
+      throw new HttpError(404, "Organizer profile not found");
+    }
+
+    if (isVerified && !existing.verificationRequested && !existing.isVerified) {
+      throw new HttpError(
+        400,
+        "Organizer must request verification before admin approval",
+      );
+    }
+
     const organizer = await this.organizerRepository.updateVerification(
       userId,
       isVerified,
@@ -142,7 +158,64 @@ export class OrganizerService {
       throw new HttpError(404, "Organizer profile not found");
     }
 
+    const customReason = rejectionReason?.trim();
+
+    await this.notificationService.sendNotification({
+      userId,
+      type: isVerified ? "verification_approved" : "verification_rejected",
+      title: isVerified
+        ? "Organizer verification approved"
+        : "Organizer verification rejected",
+      content: isVerified
+        ? "Your organizer profile has been verified by admin."
+        : customReason
+          ? `Your organizer verification request was not approved. Reason: ${customReason}`
+          : "Your organizer verification request was not approved. Please review your profile and try again.",
+    });
+
     return this.toResponseDto(organizer);
+  }
+
+  async requestVerification(userId: string): Promise<OrganizerResponseDto> {
+    const organizer = await this.organizerRepository.findByUserId(userId);
+
+    if (!organizer) {
+      throw new HttpError(404, "Organizer profile not found");
+    }
+
+    if (organizer.isVerified) {
+      throw new HttpError(400, "Organizer profile is already verified");
+    }
+
+    if (organizer.verificationRequested) {
+      throw new HttpError(409, "Verification request is already pending");
+    }
+
+    const updated = await this.organizerRepository.requestVerification(userId);
+    const requester = await UserModel.findById(userId).select("username");
+    const admins = await UserModel.find({ role: "admin" }).select("_id");
+
+    await this.notificationService.sendNotification({
+      userId,
+      type: "system",
+      title: "Verification request sent",
+      content:
+        "Your organizer verification request has been sent to admin for review.",
+    });
+
+    await Promise.all(
+      admins.map((admin) =>
+        this.notificationService.sendNotification({
+          userId: admin._id.toString(),
+          type: "verification_request",
+          title: "New organizer verification request",
+          content: `${requester?.username || "An organizer"} requested profile verification.`,
+          relatedId: userId,
+        }),
+      ),
+    );
+
+    return this.toResponseDto(updated!);
   }
 
   async uploadProfilePicture(
@@ -326,6 +399,26 @@ export class OrganizerService {
   }
 
   private toResponseDto(organizer: IOrganizer): OrganizerResponseDto {
+    const normalizeUserId = (userRef: unknown): string => {
+      if (!userRef) return "";
+
+      if (typeof userRef === "string") {
+        return userRef;
+      }
+
+      if (typeof userRef === "object") {
+        const candidate = userRef as { _id?: unknown; id?: unknown };
+        if (candidate._id) {
+          return candidate._id.toString();
+        }
+        if (candidate.id) {
+          return candidate.id.toString();
+        }
+      }
+
+      return userRef.toString();
+    };
+
     const getMediaUrl = (
       filename: string | undefined,
       type: string,
@@ -348,7 +441,7 @@ export class OrganizerService {
 
     return {
       id: organizer._id.toString(),
-      userId: organizer.userId.toString(),
+      userId: normalizeUserId(organizer.userId),
       organizationName: organizer.organizationName,
       profilePicture: getMediaUrl(organizer.profilePicture, "profile"),
       bio: organizer.bio,
@@ -365,6 +458,7 @@ export class OrganizerService {
         getMediaUrl(doc, "documents"),
       ),
       isVerified: organizer.isVerified,
+      verificationRequested: organizer.verificationRequested,
       isActive: organizer.isActive,
       createdAt: organizer.createdAt,
       updatedAt: organizer.updatedAt,

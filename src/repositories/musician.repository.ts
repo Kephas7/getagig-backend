@@ -1,5 +1,9 @@
 import { MusicianModel, IMusician } from "../models/musician.model";
-import { CreateMusicianDto, UpdateMusicianDto } from "../dtos/musician.dto";
+import {
+  CreateMusicianDto,
+  CreateMusicianCalendarEventDto,
+  UpdateMusicianDto,
+} from "../dtos/musician.dto";
 import { sanitizeRegex } from "../utils/regex";
 
 export class MusicianRepository {
@@ -38,8 +42,7 @@ export class MusicianRepository {
   }
 
   async findAll(filters: {
-    city?: string;
-    country?: string;
+    location?: string;
     genres?: string[];
     instruments?: string[];
     isAvailable?: boolean;
@@ -47,8 +50,7 @@ export class MusicianRepository {
     limit?: number;
   }): Promise<{ musicians: IMusician[]; total: number }> {
     const {
-      city,
-      country,
+      location,
       genres,
       instruments,
       isAvailable,
@@ -58,8 +60,7 @@ export class MusicianRepository {
 
     const query: any = {};
 
-    if (city) query["location.city"] = new RegExp(sanitizeRegex(city), "i");
-    if (country) query["location.country"] = new RegExp(sanitizeRegex(country), "i");
+    if (location) query.location = new RegExp(sanitizeRegex(location), "i");
     if (genres && genres.length > 0) query.genres = { $in: genres };
     if (instruments && instruments.length > 0)
       query.instruments = { $in: instruments };
@@ -96,6 +97,25 @@ export class MusicianRepository {
     );
   }
 
+  async updateVerification(
+    userId: string,
+    isVerified: boolean,
+  ): Promise<IMusician | null> {
+    return await MusicianModel.findOneAndUpdate(
+      { userId },
+      { $set: { isVerified, verificationRequested: false } },
+      { new: true },
+    );
+  }
+
+  async requestVerification(userId: string): Promise<IMusician | null> {
+    return await MusicianModel.findOneAndUpdate(
+      { userId },
+      { $set: { verificationRequested: true } },
+      { new: true },
+    );
+  }
+
   async addMedia(
     userId: string,
     mediaType: "photos" | "videos" | "audioSamples",
@@ -105,11 +125,9 @@ export class MusicianRepository {
       ? { $addToSet: { [mediaType]: { $each: urls } } }
       : { $addToSet: { [mediaType]: urls } };
 
-    return await MusicianModel.findOneAndUpdate(
-      { userId },
-      updateQuery,
-      { new: true },
-    );
+    return await MusicianModel.findOneAndUpdate({ userId }, updateQuery, {
+      new: true,
+    });
   }
 
   async removeMedia(
@@ -120,6 +138,40 @@ export class MusicianRepository {
     return await MusicianModel.findOneAndUpdate(
       { userId },
       { $pull: { [mediaType]: url } },
+      { new: true },
+    );
+  }
+
+  async getCalendarEvents(userId: string): Promise<IMusician | null> {
+    return await MusicianModel.findOne({ userId }).select("calendarEvents");
+  }
+
+  async addCalendarEvent(
+    userId: string,
+    event: { title: string; date: Date; note?: string },
+  ): Promise<IMusician | null> {
+    return await MusicianModel.findOneAndUpdate(
+      { userId },
+      {
+        $push: {
+          calendarEvents: {
+            title: event.title,
+            date: event.date,
+            ...(event.note ? { note: event.note } : {}),
+          },
+        },
+      },
+      { new: true },
+    );
+  }
+
+  async removeCalendarEvent(
+    userId: string,
+    eventId: string,
+  ): Promise<IMusician | null> {
+    return await MusicianModel.findOneAndUpdate(
+      { userId },
+      { $pull: { calendarEvents: { _id: eventId } } },
       { new: true },
     );
   }

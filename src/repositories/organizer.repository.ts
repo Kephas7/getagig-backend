@@ -38,8 +38,7 @@ export class OrganizerRepository {
   }
 
   async findAll(filters: {
-    city?: string;
-    country?: string;
+    location?: string;
     organizationType?: string;
     eventTypes?: string[];
     isVerified?: boolean;
@@ -48,8 +47,7 @@ export class OrganizerRepository {
     limit?: number;
   }): Promise<{ organizers: IOrganizer[]; total: number }> {
     const {
-      city,
-      country,
+      location,
       organizationType,
       eventTypes,
       isVerified,
@@ -60,8 +58,7 @@ export class OrganizerRepository {
 
     const query: any = {};
 
-    if (city) query["location.city"] = new RegExp(sanitizeRegex(city), "i");
-    if (country) query["location.country"] = new RegExp(sanitizeRegex(country), "i");
+    if (location) query.location = new RegExp(sanitizeRegex(location), "i");
     if (organizationType)
       query.organizationType = new RegExp(sanitizeRegex(organizationType), "i");
     if (eventTypes && eventTypes.length > 0)
@@ -95,7 +92,15 @@ export class OrganizerRepository {
   ): Promise<IOrganizer | null> {
     return await OrganizerModel.findOneAndUpdate(
       { userId },
-      { $set: { isVerified } },
+      { $set: { isVerified, verificationRequested: false } },
+      { new: true },
+    );
+  }
+
+  async requestVerification(userId: string): Promise<IOrganizer | null> {
+    return await OrganizerModel.findOneAndUpdate(
+      { userId },
+      { $set: { verificationRequested: true } },
       { new: true },
     );
   }
@@ -120,11 +125,9 @@ export class OrganizerRepository {
       ? { $addToSet: { [mediaType]: { $each: urls } } }
       : { $addToSet: { [mediaType]: urls } };
 
-    return await OrganizerModel.findOneAndUpdate(
-      { userId },
-      updateQuery,
-      { new: true },
-    );
+    return await OrganizerModel.findOneAndUpdate({ userId }, updateQuery, {
+      new: true,
+    });
   }
 
   async removeMedia(
