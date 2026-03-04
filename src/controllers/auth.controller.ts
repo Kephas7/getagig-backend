@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 import { UserService } from "../services/user.service";
 import { HttpError } from "../errors/http-error";
 import { IUser } from "../models/user.model";
@@ -121,19 +122,23 @@ export class AuthController {
   sendResetPasswordEmail = async (req: Request, res: Response) => {
     try {
       const { email, clientUrl } = req.body;
-      const user = await this.userService.sendResetPasswordEmail(email, clientUrl);
+      await this.userService.sendResetPasswordEmail(email, clientUrl);
       return res.status(200).json({
         success: true,
-        data: user,
         message: "If the email is registered, a reset link has been sent.",
       });
     } catch (error: Error | any) {
-      return res
-        .status(error.statusCode ?? 500)
-        .json({
+      if (error instanceof HttpError && error.statusCode === 400) {
+        return res.status(400).json({
           success: false,
-          message: error.message || "Internal Server Error",
+          message: error.message,
         });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "If the email is registered, a reset link has been sent.",
+      });
     }
   };
   resetPassword = async (req: Request, res: Response, next: NextFunction) => {
@@ -146,12 +151,26 @@ export class AuthController {
         message: "Password reset successful",
       });
     } catch (error: Error | any) {
-      return res
-        .status(error.statusCode ?? 500)
-        .json({
+      if (error instanceof HttpError) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
+      }
+
+      if (
+        error instanceof jwt.JsonWebTokenError ||
+        error instanceof jwt.TokenExpiredError
+      ) {
+        return res.status(400).json({
           success: false,
-          message: error.message || "Internal Server Error",
+          message: "Invalid or expired reset token",
         });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+      });
     }
   };
 

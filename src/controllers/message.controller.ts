@@ -4,8 +4,91 @@ import { MessageModel } from "../models/message.model";
 import { io } from "../utils/socket";
 import { NotificationModel } from "../models/notification.model";
 import { UserModel } from "../models/user.model";
+import { MusicianModel } from "../models/musician.model";
+import { OrganizerModel } from "../models/organizer.model";
 import push from "../utils/push";
 import { HttpError } from "../errors/http-error";
+
+async function enrichParticipantsWithProfilePictures(participants: any[]) {
+  const normalizedParticipants = (participants || []).map(
+    (participant: any) => {
+      const plain = participant?.toObject
+        ? participant.toObject()
+        : participant;
+      return {
+        ...plain,
+        _id: (plain?._id || participant?._id || "").toString(),
+        profilePicture: plain?.profilePicture || "",
+      };
+    },
+  );
+
+  const missingAvatarUserIds = [
+    ...new Set(
+      normalizedParticipants
+        .filter((participant: any) => !participant.profilePicture)
+        .map((participant: any) => participant._id)
+        .filter(Boolean),
+    ),
+  ];
+
+  if (missingAvatarUserIds.length === 0) {
+    return normalizedParticipants;
+  }
+
+  const [musicianProfiles, organizerProfiles] = await Promise.all([
+    MusicianModel.find({ userId: { $in: missingAvatarUserIds } })
+      .select("userId profilePicture")
+      .lean(),
+    OrganizerModel.find({ userId: { $in: missingAvatarUserIds } })
+      .select("userId profilePicture")
+      .lean(),
+  ]);
+
+  const musicianAvatarByUserId = new Map<string, string>();
+  for (const profile of musicianProfiles) {
+    const avatar = profile?.profilePicture?.toString?.();
+    const userId = profile?.userId?.toString?.();
+    if (avatar && userId) {
+      musicianAvatarByUserId.set(userId, avatar);
+    }
+  }
+
+  const organizerAvatarByUserId = new Map<string, string>();
+  for (const profile of organizerProfiles) {
+    const avatar = profile?.profilePicture?.toString?.();
+    const userId = profile?.userId?.toString?.();
+    if (avatar && userId) {
+      organizerAvatarByUserId.set(userId, avatar);
+    }
+  }
+
+  return normalizedParticipants.map((participant: any) => {
+    if (participant.profilePicture) {
+      return participant;
+    }
+
+    const participantId = participant._id?.toString?.() || "";
+    const role = participant.role;
+
+    let fallbackAvatar = "";
+    if (role === "musician") {
+      fallbackAvatar = musicianAvatarByUserId.get(participantId) || "";
+    } else if (role === "organizer") {
+      fallbackAvatar = organizerAvatarByUserId.get(participantId) || "";
+    } else {
+      fallbackAvatar =
+        musicianAvatarByUserId.get(participantId) ||
+        organizerAvatarByUserId.get(participantId) ||
+        "";
+    }
+
+    return {
+      ...participant,
+      profilePicture: fallbackAvatar,
+    };
+  });
+}
 
 export class MessageController {
   async getConversations(req: Request, res: Response, next: NextFunction) {
@@ -19,9 +102,20 @@ export class MessageController {
         .populate("participants", "username email profilePicture role")
         .sort({ updatedAt: -1 });
 
+      const enrichedConversations = await Promise.all(
+        conversations.map(async (conversation) => {
+          const conversationData = conversation.toObject();
+          conversationData.participants =
+            await enrichParticipantsWithProfilePictures(
+              conversationData.participants || [],
+            );
+          return conversationData;
+        }),
+      );
+
       res.status(200).json({
         success: true,
-        data: conversations,
+        data: enrichedConversations,
       });
     } catch (error) {
       next(error);
@@ -43,13 +137,19 @@ export class MessageController {
         createdAt: 1,
       });
 
-      const populatedConversation = await ConversationModel.findById(conversationId).populate("participants", "username email profilePicture role");
+      const populatedConversation = await ConversationModel.findById(
+        conversationId,
+      ).populate("participants", "username email profilePicture role");
+
+      const enrichedParticipants = await enrichParticipantsWithProfilePictures(
+        (populatedConversation?.participants as any[]) || [],
+      );
 
       res.status(200).json({
         success: true,
         data: {
           messages,
-          participants: populatedConversation?.participants || []
+          participants: enrichedParticipants,
         },
       });
     } catch (error) {
@@ -62,26 +162,35 @@ export class MessageController {
       const user = (req as any).user;
       const senderId = user._id ? user._id.toString() : user.id || user.userId;
       const { recipientId } = req.body;
+      const normalizedRecipientId = recipientId?.toString?.().trim();
 
-      if (!recipientId) {
+      if (!normalizedRecipientId) {
         return next(new HttpError(400, "Recipient ID is required"));
       }
 
-      if (recipientId === senderId) {
+      if (normalizedRecipientId === senderId) {
         return next(
           new HttpError(400, "You cannot start a conversation with yourself"),
         );
       }
 
+      const recipientUser = await UserModel.findById(normalizedRecipientId)
+        .select("_id")
+        .lean();
+
+      if (!recipientUser) {
+        return next(new HttpError(404, "Recipient user not found"));
+      }
+
       // Find existing conversation between the two users (in any order)
       let conversation = await ConversationModel.findOne({
-        participants: { $all: [senderId, recipientId] },
+        participants: { $all: [senderId, normalizedRecipientId] },
       });
 
       // If no conversation exists, create a new one
       if (!conversation) {
         conversation = await ConversationModel.create({
-          participants: [senderId, recipientId],
+          participants: [senderId, normalizedRecipientId],
         });
       }
 
@@ -91,9 +200,15 @@ export class MessageController {
         "username email profilePicture role",
       );
 
+      const conversationData = populatedConversation.toObject();
+      conversationData.participants =
+        await enrichParticipantsWithProfilePictures(
+          conversationData.participants || [],
+        );
+
       res.status(201).json({
         success: true,
-        data: populatedConversation,
+        data: conversationData,
       });
     } catch (error) {
       next(error);
@@ -114,6 +229,20 @@ export class MessageController {
 
       if (conversationId) {
         conversation = await ConversationModel.findById(conversationId);
+
+        if (!conversation) {
+          return next(new HttpError(404, "Conversation not found"));
+        }
+
+        const isParticipant = conversation.participants.some(
+          (participant) => participant.toString() === senderId,
+        );
+
+        if (!isParticipant) {
+          return next(
+            new HttpError(403, "Not authorized to send in this conversation"),
+          );
+        }
       }
 
       if (!conversation && receiverId) {

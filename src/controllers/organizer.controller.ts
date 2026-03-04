@@ -113,8 +113,7 @@ export class OrganizerController {
   ) => {
     try {
       const {
-        city,
-        country,
+        location,
         organizationType,
         eventTypes,
         isVerified,
@@ -124,8 +123,7 @@ export class OrganizerController {
       } = req.query;
 
       const filters = {
-        city: city as string,
-        country: country as string,
+        location: location as string,
         organizationType: organizationType as string,
         eventTypes: eventTypes ? (eventTypes as string).split(",") : undefined,
         isVerified:
@@ -187,7 +185,7 @@ export class OrganizerController {
     next: NextFunction,
   ) => {
     try {
-      const { userId, isVerified } = req.body;
+      const { userId, isVerified, rejectionReason } = req.body;
 
       if (!userId) {
         throw new HttpError(400, "User ID is required");
@@ -200,11 +198,33 @@ export class OrganizerController {
       const organizer = await this.organizerService.updateVerification(
         userId,
         isVerified,
+        rejectionReason,
       );
 
       res.status(200).json({
         success: true,
         message: "Verification status updated successfully",
+        data: organizer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  requestVerification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const userId = user._id.toString();
+
+      const organizer = await this.organizerService.requestVerification(userId);
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully",
         data: organizer,
       });
     } catch (error) {

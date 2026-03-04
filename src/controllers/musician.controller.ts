@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { MusicianService } from "../services/musician.service";
 import {
+  createMusicianCalendarEventSchema,
   createMusicianSchema,
   updateMusicianSchema,
 } from "../types/musician.type";
@@ -110,8 +111,7 @@ export class MusicianController {
   searchMusicians = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const {
-        city,
-        country,
+        location,
         genres,
         instruments,
         isAvailable,
@@ -120,8 +120,7 @@ export class MusicianController {
       } = req.query;
 
       const filters = {
-        city: city as string,
-        country: country as string,
+        location: location as string,
         genres: genres ? (genres as string).split(",") : undefined,
         instruments: instruments
           ? (instruments as string).split(",")
@@ -170,6 +169,129 @@ export class MusicianController {
       res.status(200).json({
         success: true,
         message: "Availability updated successfully",
+        data: musician,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCalendarEvents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const userId = user._id.toString();
+
+      const events = await this.musicianService.getCalendarEvents(userId);
+
+      res.status(200).json({
+        success: true,
+        data: events,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  addCalendarEvent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const validatedData = createMusicianCalendarEventSchema.parse(req.body);
+      const user = req.user as IUser;
+      const userId = user._id.toString();
+
+      const event = await this.musicianService.addCalendarEvent(
+        userId,
+        validatedData,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Calendar event created successfully",
+        data: event,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  removeCalendarEvent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const userId = user._id.toString();
+      const { eventId } = req.params;
+
+      if (!eventId) {
+        throw new HttpError(400, "Event ID is required");
+      }
+
+      await this.musicianService.removeCalendarEvent(userId, eventId);
+
+      res.status(200).json({
+        success: true,
+        message: "Calendar event deleted successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateVerification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { userId, isVerified, rejectionReason } = req.body;
+
+      if (!userId) {
+        throw new HttpError(400, "User ID is required");
+      }
+
+      if (typeof isVerified !== "boolean") {
+        throw new HttpError(400, "isVerified must be a boolean");
+      }
+
+      const musician = await this.musicianService.updateVerification(
+        userId,
+        isVerified,
+        rejectionReason,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Verification status updated successfully",
+        data: musician,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  requestVerification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user as IUser;
+      const userId = user._id.toString();
+
+      const musician = await this.musicianService.requestVerification(userId);
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully",
         data: musician,
       });
     } catch (error) {

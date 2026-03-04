@@ -53,6 +53,13 @@ router.patch(
 );
 
 router.patch(
+  "/request-verification",
+  authorizedMiddleWare,
+  organizerOnly,
+  organizerController.requestVerification,
+);
+
+router.patch(
   "/verify",
   authorizedMiddleWare,
   adminOnly,

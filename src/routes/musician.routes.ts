@@ -7,7 +7,7 @@ import {
   uploadAudio,
 } from "../middlewares/upload.middleware";
 import { authorizedMiddleWare } from "../middlewares/authorized.middleware";
-import { rolesMiddleWare } from "../middlewares/roles.middleware";
+import { rolesMiddleWare, adminOnly } from "../middlewares/roles.middleware";
 
 const router = Router();
 const musicianController = new MusicianController();
@@ -50,6 +50,41 @@ router.patch(
   authorizedMiddleWare,
   musicianOnly,
   musicianController.updateAvailability,
+);
+
+router.get(
+  "/calendar-events",
+  authorizedMiddleWare,
+  musicianOnly,
+  musicianController.getCalendarEvents,
+);
+
+router.post(
+  "/calendar-events",
+  authorizedMiddleWare,
+  musicianOnly,
+  musicianController.addCalendarEvent,
+);
+
+router.delete(
+  "/calendar-events/:eventId",
+  authorizedMiddleWare,
+  musicianOnly,
+  musicianController.removeCalendarEvent,
+);
+
+router.patch(
+  "/request-verification",
+  authorizedMiddleWare,
+  musicianOnly,
+  musicianController.requestVerification,
+);
+
+router.patch(
+  "/verify",
+  authorizedMiddleWare,
+  adminOnly,
+  musicianController.updateVerification,
 );
 
 router.post(
