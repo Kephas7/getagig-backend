@@ -8,11 +8,7 @@ export const createMusicianSchema = z.object({
   profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000, "Bio cannot exceed 1000 characters").optional(),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  location: z.object({
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    country: z.string().min(1, "Country is required"),
-  }),
+  location: z.string().min(1, "Location is required"),
   genres: z.array(z.string()).min(1, "At least one genre is required"),
   instruments: z
     .array(z.string())
@@ -30,13 +26,7 @@ export const updateMusicianSchema = z.object({
   profilePicture: z.string().optional(), // Added this field
   bio: z.string().max(1000).optional(),
   phone: z.string().min(10).optional(),
-  location: z
-    .object({
-      city: z.string().min(1).optional(),
-      state: z.string().min(1).optional(),
-      country: z.string().min(1).optional(),
-    })
-    .optional(),
+  location: z.string().min(1).optional(),
   genres: z.array(z.string()).min(1).optional(),
   instruments: z.array(z.string()).min(1).optional(),
   experienceYears: z.number().min(0).optional(),
@@ -45,4 +35,13 @@ export const updateMusicianSchema = z.object({
   videos: z.array(z.string()).optional(),
   audioSamples: z.array(z.string()).optional(),
   isAvailable: z.boolean().optional(),
+});
+
+export const createMusicianCalendarEventSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Event title is required")
+    .max(120, "Event title is too long"),
+  date: z.string().min(1, "Event date is required"),
+  note: z.string().max(300, "Note is too long").optional(),
 });

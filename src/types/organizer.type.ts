@@ -13,11 +13,7 @@ export const createOrganizerSchema = z.object({
     .max(100, "Name too long"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
   email: z.string().email("Invalid email address"),
-  location: z.object({
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    country: z.string().min(1, "Country is required"),
-  }),
+  location: z.string().min(1, "Location is required"),
   website: z.string().url("Invalid URL").optional(),
   photos: z.array(z.string()).optional().default([]),
   videos: z.array(z.string()).optional().default([]),
@@ -34,13 +30,7 @@ export const updateOrganizerSchema = z.object({
   contactPerson: z.string().min(1).max(100).optional(),
   phone: z.string().min(10).optional(),
   email: z.string().email("Invalid email address").optional(),
-  location: z
-    .object({
-      city: z.string().min(1).optional(),
-      state: z.string().min(1).optional(),
-      country: z.string().min(1).optional(),
-    })
-    .optional(),
+  location: z.string().min(1).optional(),
   website: z.string().url("Invalid URL").optional(),
   photos: z.array(z.string()).optional(),
   videos: z.array(z.string()).optional(),

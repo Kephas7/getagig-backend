@@ -16,6 +16,9 @@ export interface UserResponseDto {
   username: string;
   email: string;
   role: "musician" | "organizer" | "admin";
+  isVerified?: boolean;
+  verificationRequested?: boolean;
+  profileId?: string;
   profilePicture?: string;
   createdAt: Date;
   updatedAt: Date;

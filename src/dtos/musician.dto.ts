@@ -1,11 +1,23 @@
 import z from "zod";
 import {
   createMusicianSchema,
+  createMusicianCalendarEventSchema,
   updateMusicianSchema,
 } from "../types/musician.type";
 
 export type CreateMusicianDto = z.infer<typeof createMusicianSchema>;
 export type UpdateMusicianDto = z.infer<typeof updateMusicianSchema>;
+export type CreateMusicianCalendarEventDto = z.infer<
+  typeof createMusicianCalendarEventSchema
+>;
+
+export interface MusicianCalendarEventResponseDto {
+  id: string;
+  title: string;
+  date: Date;
+  note?: string;
+  createdAt: Date;
+}
 
 export interface MusicianResponseDto {
   id: string;
@@ -14,11 +26,7 @@ export interface MusicianResponseDto {
   profilePicture?: string;
   bio?: string;
   phone: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
+  location: string;
   genres: string[];
   instruments: string[];
   experienceYears: number;
@@ -27,6 +35,8 @@ export interface MusicianResponseDto {
   videos: string[];
   audioSamples: string[];
   isAvailable: boolean;
+  isVerified: boolean;
+  verificationRequested: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

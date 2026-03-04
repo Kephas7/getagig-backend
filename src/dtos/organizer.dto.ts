@@ -16,11 +16,7 @@ export interface OrganizerResponseDto {
   contactPerson: string;
   phone: string;
   email: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
+  location: string;
   website?: string;
   photos: string[];
   videos: string[];
@@ -28,6 +24,7 @@ export interface OrganizerResponseDto {
   eventTypes: string[];
   verificationDocuments: string[];
   isVerified: boolean;
+  verificationRequested: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -1,16 +1,19 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IMusician extends Document {
+  calendarEvents: Array<{
+    _id: mongoose.Types.ObjectId;
+    title: string;
+    date: Date;
+    note?: string;
+    createdAt: Date;
+  }>;
   userId: mongoose.Types.ObjectId;
   stageName: string;
   profilePicture?: string;
   bio?: string;
   phone: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
+  location: string;
   genres: string[];
   instruments: string[];
   experienceYears: number;
@@ -21,6 +24,8 @@ export interface IMusician extends Document {
   audioSamples: string[];
 
   isAvailable: boolean;
+  isVerified: boolean;
+  verificationRequested: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +33,30 @@ export interface IMusician extends Document {
 
 const MusicianSchema: Schema = new Schema(
   {
+    calendarEvents: {
+      type: [
+        {
+          title: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          date: {
+            type: Date,
+            required: true,
+          },
+          note: {
+            type: String,
+            trim: true,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -51,21 +80,9 @@ const MusicianSchema: Schema = new Schema(
       trim: true,
     },
     location: {
-      city: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      state: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      country: {
-        type: String,
-        required: true,
-        trim: true,
-      },
+      type: String,
+      required: true,
+      trim: true,
     },
     genres: {
       type: [String],
@@ -98,16 +115,26 @@ const MusicianSchema: Schema = new Schema(
       type: Boolean,
       default: true,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationRequested: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   },
 );
 
-MusicianSchema.index({ "location.city": 1, "location.country": 1 });
+MusicianSchema.index({ location: 1 });
 MusicianSchema.index({ genres: 1 });
 MusicianSchema.index({ instruments: 1 });
 MusicianSchema.index({ isAvailable: 1 });
+MusicianSchema.index({ isVerified: 1 });
+MusicianSchema.index({ verificationRequested: 1 });
 
 export const MusicianModel = mongoose.model<IMusician>(
   "Musician",

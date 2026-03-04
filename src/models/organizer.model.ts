@@ -8,11 +8,7 @@ export interface IOrganizer extends Document {
   contactPerson: string;
   phone: string;
   email: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
+  location: string;
   website?: string;
   photos: string[];
   videos: string[];
@@ -20,6 +16,7 @@ export interface IOrganizer extends Document {
   eventTypes: string[];
   verificationDocuments: string[];
   isVerified: boolean;
+  verificationRequested: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -61,21 +58,9 @@ const OrganizerSchema: Schema = new Schema(
       lowercase: true,
     },
     location: {
-      city: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      state: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      country: {
-        type: String,
-        required: true,
-        trim: true,
-      },
+      type: String,
+      required: true,
+      trim: true,
     },
     website: {
       type: String,
@@ -104,6 +89,10 @@ const OrganizerSchema: Schema = new Schema(
       type: Boolean,
       default: false,
     },
+    verificationRequested: {
+      type: Boolean,
+      default: false,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -114,10 +103,11 @@ const OrganizerSchema: Schema = new Schema(
   },
 );
 
-OrganizerSchema.index({ "location.city": 1, "location.country": 1 });
+OrganizerSchema.index({ location: 1 });
 OrganizerSchema.index({ organizationType: 1 });
 OrganizerSchema.index({ eventTypes: 1 });
 OrganizerSchema.index({ isVerified: 1, isActive: 1 });
+OrganizerSchema.index({ verificationRequested: 1 });
 
 export const OrganizerModel = mongoose.model<IOrganizer>(
   "Organizer",
