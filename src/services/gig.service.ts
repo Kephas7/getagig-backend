@@ -102,7 +102,8 @@ export class GigService {
             email: user.email,
             role: user.role || "organizer",
             organizationName: organizerContainer.organizationName,
-            profilePicture: organizerContainer.profilePicture,
+            profilePicture:
+              organizerContainer.profilePicture || user.profilePicture,
             displayName:
               organizerContainer.organizationName ||
               user.username ||

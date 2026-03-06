@@ -25,6 +25,7 @@ type VerificationMeta = {
   isVerified?: boolean;
   verificationRequested?: boolean;
   profileId?: string;
+  profilePicture?: string;
 };
 
 export class UserService {
@@ -277,7 +278,7 @@ export class UserService {
       isVerified: verificationMeta?.isVerified,
       verificationRequested: verificationMeta?.verificationRequested,
       profileId: verificationMeta?.profileId,
-      profilePicture: user.profilePicture,
+      profilePicture: verificationMeta?.profilePicture || user.profilePicture,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -292,6 +293,7 @@ export class UserService {
         isVerified: musicianProfile?.isVerified ?? false,
         verificationRequested: musicianProfile?.verificationRequested ?? false,
         profileId: musicianProfile?._id?.toString(),
+        profilePicture: musicianProfile?.profilePicture,
       };
     }
 
@@ -303,6 +305,7 @@ export class UserService {
         isVerified: organizerProfile?.isVerified ?? false,
         verificationRequested: organizerProfile?.verificationRequested ?? false,
         profileId: organizerProfile?._id?.toString(),
+        profilePicture: organizerProfile?.profilePicture,
       };
     }
 

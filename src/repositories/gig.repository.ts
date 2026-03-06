@@ -14,7 +14,10 @@ export class GigRepository {
   async findById(id: string): Promise<IGig | null> {
     return await GigModel.findById(id).populate({
       path: "organizerId",
-      populate: { path: "userId", select: "username email" },
+      populate: {
+        path: "userId",
+        select: "username email role profilePicture",
+      },
     });
   }
 
@@ -54,7 +57,10 @@ export class GigRepository {
       GigModel.find(query)
         .populate({
           path: "organizerId",
-          populate: { path: "userId", select: "username email" },
+          populate: {
+            path: "userId",
+            select: "username email role profilePicture",
+          },
         })
         .skip(skip)
         .limit(limit)

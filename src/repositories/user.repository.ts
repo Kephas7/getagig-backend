@@ -80,10 +80,16 @@ export class UserRepository implements IUserRepository {
     token: string,
     platform?: string,
   ): Promise<IUser | null> {
+    await UserModel.updateMany(
+      { _id: { $ne: userId }, "deviceTokens.token": token },
+      { $pull: { deviceTokens: { token } } },
+    );
+
     const updated = await UserModel.findByIdAndUpdate(
       userId,
       {
-        $addToSet: { deviceTokens: { token, platform, createdAt: new Date() } },
+        $pull: { deviceTokens: { token } },
+        $push: { deviceTokens: { token, platform, createdAt: new Date() } },
       },
       { new: true },
     ).select("-password");
