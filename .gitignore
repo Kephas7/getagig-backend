@@ -96,3 +96,6 @@ uploads/
       ├── photos/
       ├── videos/
       └── audio/
+
+# Firebase service account credentials
+FirebaseService/*.json

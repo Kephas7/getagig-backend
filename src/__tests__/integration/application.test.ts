@@ -92,6 +92,27 @@ describe("Application Integration Tests", () => {
     if (!checkGig) throw new Error("Gig creation failed in test setup");
   });
 
+  it("should reject unauthenticated application requests", async () => {
+    const res = await request(app).post("/api/applications").send({ gigId });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe("Unauthorized, No Bearer Token");
+  });
+
+  it("should not allow an organizer to apply for a gig", async () => {
+    const res = await request(app)
+      .post("/api/applications")
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .send({
+        gigId,
+        coverLetter: "Organizer should not be able to apply",
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+  });
+
   it("should allow a musician to apply for a gig", async () => {
     const res = await request(app)
       .post("/api/applications")
@@ -115,6 +136,26 @@ describe("Application Integration Tests", () => {
       .send({ gigId });
 
     expect(res.status).toBe(400);
+  });
+
+  it("should allow musician to view own applications", async () => {
+    const res = await request(app)
+      .get("/api/applications/my-applications")
+      .set("Authorization", `Bearer ${musicianToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThan(0);
+  });
+
+  it("should not allow organizer to view musician applications endpoint", async () => {
+    const res = await request(app)
+      .get("/api/applications/my-applications")
+      .set("Authorization", `Bearer ${organizerToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
   });
 
   it("should allow organizer to view applications for their gig", async () => {

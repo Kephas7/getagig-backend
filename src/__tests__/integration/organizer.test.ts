@@ -2,6 +2,7 @@ import request from "supertest";
 import app from "../../app";
 import { UserModel } from "../../models/user.model";
 import { OrganizerModel } from "../../models/organizer.model";
+import mongoose from "mongoose";
 
 describe("Organizer Integration Tests", () => {
   const organizerUser = {
@@ -111,6 +112,23 @@ describe("Organizer Integration Tests", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty("organizationName");
     });
+
+    test("should reject unauthenticated access to own profile", async () => {
+      const response = await request(app).get("/api/organizers/profile");
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Unauthorized, No Bearer Token");
+    });
+
+    test("should deny musician access to organizer own profile endpoint", async () => {
+      const response = await request(app)
+        .get("/api/organizers/profile")
+        .set("Authorization", `Bearer ${musicianToken}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+    });
   });
 
   describe("PUT /api/organizers/profile", () => {
@@ -127,6 +145,20 @@ describe("Organizer Integration Tests", () => {
         "organizationName",
         updateData.organizationName,
       );
+    });
+  });
+
+  describe("GET /api/organizers/profile/:id", () => {
+    test("should return 404 when profile id does not exist", async () => {
+      const unknownProfileId = new mongoose.Types.ObjectId().toString();
+
+      const response = await request(app).get(
+        `/api/organizers/profile/${unknownProfileId}`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Organizer profile not found");
     });
   });
 });

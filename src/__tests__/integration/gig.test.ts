@@ -9,7 +9,7 @@ describe("Gig Integration Tests", () => {
   let organizerToken: string;
   let musicianToken: string;
   let testGigId: string;
-  let organizerId: string;
+  let organizerUserId: string;
 
   const testOrganizerUser = {
     username: "testorganizer",
@@ -45,6 +45,7 @@ describe("Gig Integration Tests", () => {
       password: testOrganizerUser.password,
     });
     organizerToken = orgLogin.body.data.token;
+    organizerUserId = orgLogin.body.data.user.id;
 
     // Create organizer profile
     await request(app)
@@ -137,6 +138,43 @@ describe("Gig Integration Tests", () => {
       const response = await request(app).get(`/api/gigs/${testGigId}`);
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(testGigId);
+    });
+
+    test("should prefer organizer profile picture over user profile picture", async () => {
+      const organizerPicture = "/uploads/organizers/org-primary.jpg";
+      const userPicture = "/uploads/users/user-secondary.jpg";
+
+      await OrganizerModel.findOneAndUpdate(
+        { userId: organizerUserId },
+        { $set: { profilePicture: organizerPicture } },
+      );
+      await UserModel.findByIdAndUpdate(organizerUserId, {
+        $set: { profilePicture: userPicture },
+      });
+
+      const response = await request(app).get(`/api/gigs/${testGigId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.organizer).toBeDefined();
+      expect(response.body.data.organizer.profilePicture).toBe(organizerPicture);
+    });
+
+    test("should fallback to user profile picture when organizer profile picture is missing", async () => {
+      const userPicture = "/uploads/users/user-only.jpg";
+
+      await OrganizerModel.findOneAndUpdate(
+        { userId: organizerUserId },
+        { $unset: { profilePicture: 1 } },
+      );
+      await UserModel.findByIdAndUpdate(organizerUserId, {
+        $set: { profilePicture: userPicture },
+      });
+
+      const response = await request(app).get(`/api/gigs/${testGigId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.organizer).toBeDefined();
+      expect(response.body.data.organizer.profilePicture).toBe(userPicture);
     });
   });
 
